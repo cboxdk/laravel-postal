@@ -1,0 +1,68 @@
+{
+    "name": "cboxdk/laravel-postal",
+    "description": "Postal mail server integration for Laravel — a typed, multi-server send transport plus a verified, event-driven webhook observability spine (delivery, bounce, open, click, DNS).",
+    "keywords": ["laravel", "postal", "mail", "email", "webhooks", "deliverability", "bounce-handling", "mail-transport"],
+    "homepage": "https://github.com/cboxdk/laravel-postal",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        { "name": "Sylvester Damgaard", "email": "sn@cbox.dk", "role": "Developer" }
+    ],
+    "require": {
+        "php": "^8.4",
+        "ext-openssl": "*",
+        "illuminate/console": "^12.0 || ^13.0",
+        "illuminate/contracts": "^12.0 || ^13.0",
+        "illuminate/database": "^12.0 || ^13.0",
+        "illuminate/http": "^12.0 || ^13.0",
+        "illuminate/mail": "^12.0 || ^13.0",
+        "illuminate/queue": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0",
+        "symfony/mailer": "^7.4 || ^8.0"
+    },
+    "require-dev": {
+        "cboxdk/laravel-health": "^2.0",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "pestphp/pest": "^3.5 || ^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0 || ^4.0"
+    },
+    "suggest": {
+        "cboxdk/laravel-health": "Register Cbox\\LaravelPostal\\Health\\PostalConnectionCheck in health.checks to monitor every configured Postal server"
+    },
+    "bin": [
+        "bin/check-licenses.php",
+        "bin/generate-sbom.php"
+    ],
+    "autoload": {
+        "psr-4": { "Cbox\\LaravelPostal\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Cbox\\LaravelPostal\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "lint": "pint --test",
+        "analyse": "phpstan analyse --no-progress --memory-limit=1G",
+        "test": "pest --testsuite=default",
+        "test:e2e": "e2e/run.sh",
+        "license-check": "@php bin/check-licenses.php",
+        "sbom": "@php bin/generate-sbom.php",
+        "qa": ["@lint", "@analyse", "@test", "@license-check", "@composer audit"]
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["Cbox\\LaravelPostal\\LaravelPostalServiceProvider"],
+            "aliases": { "Postal": "Cbox\\LaravelPostal\\Facades\\Postal" }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

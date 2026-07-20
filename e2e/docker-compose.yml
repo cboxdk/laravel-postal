@@ -1,0 +1,85 @@
+# E2E stack: a real Postal 3.3.7 install to test the package against.
+#
+#   mariadb  — Postal's main + per-server message databases
+#   mailpit  — SMTP sink; Postal relays ALL outbound here (POSTAL_SMTP_RELAYS),
+#              so deliveries succeed and MessageSent webhooks actually fire
+#   postal-* — web (API), smtp (submission + inbound), worker (deliveries,
+#              webhooks, HTTP endpoints)
+#
+# Webhooks and inbound HTTP endpoints point at host.docker.internal:8085,
+# where e2e/run.sh serves e2e/capture/server.php to record the signed
+# deliveries for the test suite.
+
+name: laravel-postal-e2e
+
+x-postal-env: &postal-env
+  MAIN_DB_HOST: mariadb
+  MAIN_DB_USERNAME: root
+  MAIN_DB_PASSWORD: postal
+  MAIN_DB_DATABASE: postal
+  MESSAGE_DB_HOST: mariadb
+  MESSAGE_DB_USERNAME: root
+  MESSAGE_DB_PASSWORD: postal
+  # Must match the Host header the suite connects with (Rails host
+  # authorization allows exactly this hostname; the port is ignored).
+  POSTAL_WEB_HOSTNAME: 127.0.0.1
+  POSTAL_SMTP_HOSTNAME: localhost
+  POSTAL_SMTP_RELAYS: smtp://mailpit:1025
+  # Postal's SSRF guard blocks private destinations; the capture server on
+  # the docker host is exactly that, so allow it explicitly.
+  POSTAL_ALLOWED_REQUEST_DESTINATIONS: host.docker.internal
+  POSTAL_SIGNING_KEY_PATH: /config/signing.key
+  SMTP_SERVER_DEFAULT_PORT: "2525"
+  SMTP_SERVER_DEFAULT_BIND_ADDRESS: "0.0.0.0"
+  WEB_SERVER_DEFAULT_BIND_ADDRESS: "0.0.0.0"
+  RAILS_LOG_ENABLED: "true"
+
+x-postal-common: &postal-common
+  image: ghcr.io/postalserver/postal:3.3.7
+  # Postal only publishes amd64 images; Apple-Silicon hosts run it emulated.
+  platform: linux/amd64
+  environment: *postal-env
+  volumes:
+    - ./config:/config:ro
+    - ./seed.rb:/e2e/seed.rb:ro
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    mariadb:
+      condition: service_healthy
+
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: postal
+      MYSQL_DATABASE: postal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${E2E_MAILPIT_PORT:-18025}:8025"   # HTTP API/UI
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+
+  postal-web:
+    <<: *postal-common
+    command: postal web-server
+    ports:
+      - "${E2E_WEB_PORT:-15000}:5000"
+
+  postal-smtp:
+    <<: *postal-common
+    command: postal smtp-server
+    ports:
+      - "${E2E_SMTP_PORT:-12525}:2525"
+
+  postal-worker:
+    <<: *postal-common
+    command: postal worker
