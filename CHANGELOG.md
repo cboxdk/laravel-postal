@@ -2,6 +2,15 @@
 
 All notable changes to `cboxdk/laravel-postal` are documented here.
 
+## v0.1.1 — 2026-07-20
+
+- The database is now fully optional: with both `postal.webhooks.store`
+  and `postal.inbound.store` disabled the package registers no migrations,
+  so `php artisan migrate` creates nothing (runtime code paths were
+  already store-gated).
+- E2E suite hardened for native-Linux CI runners (signing-key permissions,
+  fail-fast sanity probes, log dump on failure).
+
 ## v0.1.0 — 2026-07-20
 
 Initial release.

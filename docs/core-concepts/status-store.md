@@ -7,7 +7,9 @@ description: The postal_messages status row, the deduplicated event log, and how
 # Status store
 
 With `postal.webhooks.store` enabled (the default), the webhook processor
-maintains two tables.
+maintains two tables. The store is entirely optional — with both store
+flags disabled the package registers no migrations and never touches the
+database.
 
 ## `postal_messages` — one row per message
 

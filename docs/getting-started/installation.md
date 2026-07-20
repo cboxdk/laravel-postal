@@ -19,8 +19,13 @@ php artisan migrate
 
 The service provider is auto-discovered. `postal:install` publishes
 `config/postal.php` and prints this same checklist; `migrate` creates the
-`postal_messages` and `postal_message_events` tables (skip only if you
-disable the store).
+`postal_messages` and `postal_message_events` tables.
+
+The database is fully optional: disable both `postal.webhooks.store` and
+`postal.inbound.store` and the package registers **no migrations at all** —
+`php artisan migrate` creates nothing, and no code path touches the
+database. You keep the typed events; idempotency then falls to your
+listeners (dedupe on `uuid()`).
 
 To copy the migrations into your app for editing:
 

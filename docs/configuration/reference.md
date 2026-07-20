@@ -45,7 +45,7 @@ of config — see [Dynamic servers](../extension-points/dynamic-servers.md).
 | `webhooks.public_key` | `POSTAL_WEBHOOK_PUBLIC_KEY` | `null` | PEM; fetch via `postal:webhook-key` |
 | `webhooks.queue` | `POSTAL_WEBHOOK_QUEUE` | `null` | Queue for `ProcessWebhook` |
 | `webhooks.connection` | `POSTAL_WEBHOOK_CONNECTION` | `null` | Queue connection |
-| `webhooks.store` | `POSTAL_WEBHOOK_STORE` | `true` | Status rows + dedupe log |
+| `webhooks.store` | `POSTAL_WEBHOOK_STORE` | `true` | Status rows + dedupe log; with both store flags off, no migrations are registered |
 
 ## Inbound
 

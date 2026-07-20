@@ -116,7 +116,15 @@ class LaravelPostalServiceProvider extends ServiceProvider
             });
         });
 
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        // The store is optional: with both store flags off the package
+        // registers no migrations, so `php artisan migrate` creates nothing.
+        // (The publish tag below stays available either way.)
+        $webhooks = $this->app->make(WebhookConfig::class);
+        $inbound = $this->app->make(InboundConfig::class);
+
+        if ($webhooks->store || $inbound->store) {
+            $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        }
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
