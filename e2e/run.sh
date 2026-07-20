@@ -37,8 +37,12 @@ trap cleanup EXIT
 
 if [ "${SKIP_UP:-0}" != "1" ]; then
     # Test-only signing key, generated fresh per run — never committed.
+    # World-readable on purpose: the container's postal user must be able to
+    # read it through the bind mount (0600 works under OrbStack's uid
+    # mapping but breaks on native Linux runners).
     mkdir -p e2e/config
     [ -f e2e/config/signing.key ] || openssl genrsa -out e2e/config/signing.key 2048 2>/dev/null
+    chmod 644 e2e/config/signing.key
 
     echo "==> Starting stack"
     "${COMPOSE[@]}" up -d --quiet-pull mariadb mailpit
@@ -64,12 +68,29 @@ if [ "${SKIP_UP:-0}" != "1" ]; then
         "${COMPOSE[@]}" logs --tail 50 postal-web >&2
         exit 1
     }
+
+    echo "==> Sanity: signing key served via JWKS"
+    curl -fs "http://127.0.0.1:${E2E_WEB_PORT}/.well-known/jwks.json" | grep -q '"kty":"RSA"' || {
+        echo "JWKS has no RSA key — the signing key is missing or unreadable inside the container" >&2
+        curl -s "http://127.0.0.1:${E2E_WEB_PORT}/.well-known/jwks.json" >&2 || true
+        "${COMPOSE[@]}" logs --tail 30 postal-web >&2
+        exit 1
+    }
 fi
 
 echo "==> Starting capture server on :${CAPTURE_PORT}"
 rm -rf "$CAPTURE_DIR" && mkdir -p "$CAPTURE_DIR"
 CAPTURE_DIR="$CAPTURE_DIR" php -S "0.0.0.0:${CAPTURE_PORT}" e2e/capture/server.php >/dev/null 2>&1 &
 CAPTURE_PID=$!
+sleep 1
+
+echo "==> Sanity: capture server reachable from inside the stack"
+"${COMPOSE[@]}" run --rm --no-deps postal-web \
+    curl -fso /dev/null --max-time 5 -X POST "http://host.docker.internal:${CAPTURE_PORT}/probe" || {
+    echo "Containers cannot reach host.docker.internal:${CAPTURE_PORT} — webhook/inbound capture would silently time out" >&2
+    exit 1
+}
+rm -f "$CAPTURE_DIR"/probe-*.json
 
 echo "==> Running e2e suite"
 POSTAL_E2E_URL="http://127.0.0.1:${E2E_WEB_PORT}" \

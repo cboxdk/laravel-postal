@@ -28,8 +28,10 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      # KEEP=1 leaves the stack running so the failure step below can dump
+      # its logs — the runner is ephemeral, so nothing leaks.
       - name: Run the E2E suite (spins up Postal + MariaDB + Mailpit)
-        run: ./e2e/run.sh
+        run: KEEP=1 ./e2e/run.sh
 
       - name: Dump stack logs on failure
         if: failure()
